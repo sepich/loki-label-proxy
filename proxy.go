@@ -121,16 +121,16 @@ func (e *Enforcer) proxyFactory(enforce string) *httputil.ReverseProxy {
 }
 
 func (e *Enforcer) lookupUser(req *http.Request) (labels.Labels, error) {
-	org := req.Header.Get("X-Grafana-Org-Id")
+	org := req.Header.Get("X-Scope-OrgID")
 	if org == "" {
-		return nil, fmt.Errorf("X-Grafana-Org-Id header not found in request")
+		return nil, fmt.Errorf("X-Scope-OrgID header not found in request")
 	}
 	user := req.Header.Get("X-Grafana-User")
 	if user == "" {
 		return nil, fmt.Errorf("X-Grafana-User header not found in request")
 	}
 	if _, ok := e.config.orgs[org]; !ok {
-		return nil, fmt.Errorf("X-Grafana-Org-Id %s not found in configs", org)
+		return nil, fmt.Errorf("X-Scope-OrgID %s not found in configs", org)
 	}
 	m := e.config.orgs[org].Users["default"]
 	if u, ok := e.config.orgs[org].Users[user]; ok {
