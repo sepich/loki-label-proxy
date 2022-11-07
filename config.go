@@ -15,9 +15,8 @@ import (
 
 // OrgConfig represents the configuration for single Grafana Org users in Loki
 type OrgConfig struct {
-	GrafanaOrg string                       `yaml:"grafana_org_id"`
-	LokiOrg    string                       `yaml:"loki_org_id"`
-	Users      map[string]map[string]string `yaml:"users"`
+	Org   string                       `yaml:"org"`
+	Users map[string]map[string]string `yaml:"users"`
 }
 
 type Config struct {
@@ -82,14 +81,14 @@ func (c *Config) reload() {
 			}
 		}
 		for _, file := range files {
-			cfg, err := loadFile(file, c.logger)
+			cfg, err := loadFile(file)
 			if err != nil {
 				level.Error(c.logger).Log("msg", "Error reading config", "file", path, "err", err)
 				os.Exit(1)
 			}
 			// TODO: RWMutex?
-			c.orgs[cfg.GrafanaOrg] = cfg
-			orgsLoaded[cfg.GrafanaOrg] = true
+			c.orgs[cfg.Org] = cfg
+			orgsLoaded[cfg.Org] = true
 		}
 	}
 	// Remove orgs that are no longer in the configs
@@ -105,7 +104,7 @@ func (c *Config) reload() {
 	}
 }
 
-func loadFile(path string, logger log.Logger) (cfg OrgConfig, err error) {
+func loadFile(path string) (cfg OrgConfig, err error) {
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return cfg, err
@@ -113,8 +112,8 @@ func loadFile(path string, logger log.Logger) (cfg OrgConfig, err error) {
 	if err := yaml.Unmarshal(content, &cfg); err != nil {
 		return cfg, err
 	}
-	if strings.TrimSpace(cfg.GrafanaOrg) == "" || strings.TrimSpace(cfg.LokiOrg) == "" {
-		return cfg, fmt.Errorf("`grafana_org_id` and `loki_org_id` must be set")
+	if strings.TrimSpace(cfg.Org) == "" {
+		return cfg, fmt.Errorf("`org` must be set")
 	}
 	if _, ok := cfg.Users["default"]; !ok {
 		return cfg, fmt.Errorf("no user `default` is defined")
