@@ -1,0 +1,20 @@
+version: '2'
+services:
+  grafana:
+    image: grafana/grafana:8.5.14
+    container_name: grafana
+    user: "472:472"
+    ports:
+      - "3000:3000"
+    volumes:
+      - loki-grafana:/var/lib/grafana
+    environment:
+      GF_DATAPROXY_SEND_USER_HEADER: "true"
+
+  # host.docker.internal
+  echo:
+    image: mendhak/http-https-echo:17
+    container_name: echo
+
+volumes:
+    loki-grafana:

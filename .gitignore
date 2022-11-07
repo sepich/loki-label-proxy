@@ -1,0 +1,4 @@
+.idea/
+*.iml
+loki-label-proxy
+configs/
