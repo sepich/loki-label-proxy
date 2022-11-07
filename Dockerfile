@@ -3,7 +3,7 @@ RUN mkdir /configs
 WORKDIR /app
 COPY go.* ./
 RUN go mod download
-COPY *.go Makefile ./
+COPY *.go Makefile .git ./
 RUN make build
 
 FROM gcr.io/distroless/static-debian11:nonroot

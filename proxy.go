@@ -87,9 +87,6 @@ func (e *Enforcer) proxyFactory(enforce string) *httputil.ReverseProxy {
 		req.URL.Scheme = e.target.Scheme
 		req.URL.Host = e.target.Host
 		req.Host = e.target.Host
-		if e.username != nil && e.password != nil {
-			req.SetBasicAuth(*e.username, *e.password)
-		}
 
 		assign, err := e.lookupUser(req)
 		if err != nil {
@@ -106,6 +103,9 @@ func (e *Enforcer) proxyFactory(enforce string) *httputil.ReverseProxy {
 			req.Header.Set("User-Agent", "")
 		}
 		level.Debug(e.logger).Log("enforce", enforce, "request", dumpReq(req, true))
+		if e.username != nil && e.password != nil {
+			req.SetBasicAuth(*e.username, *e.password)
+		}
 	}
 	return &httputil.ReverseProxy{
 		Director:  director,
