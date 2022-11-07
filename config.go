@@ -54,7 +54,7 @@ func (c *Config) watch() {
 				delayTimer.Reset(5 * time.Second)
 
 			case <-delayTimer.C:
-				level.Info(c.logger).Log("msg", "Reloading config")
+				level.Info(c.logger).Log("msg", "Reloading configs")
 				c.reload()
 			}
 		}
@@ -75,7 +75,8 @@ func (c *Config) reload() {
 			}
 			files = []string{}
 			for _, file := range entries {
-				if !file.IsDir() {
+				i, err := os.Stat(path + "/" + file.Name())
+				if err == nil && i.Mode().IsRegular() {
 					files = append(files, path+"/"+file.Name())
 				}
 			}
@@ -86,6 +87,7 @@ func (c *Config) reload() {
 				level.Error(c.logger).Log("msg", "Error reading config", "file", path, "err", err)
 				os.Exit(1)
 			}
+			level.Info(c.logger).Log("msg", "Loaded config", "file", path)
 			// TODO: RWMutex?
 			c.orgs[cfg.Org] = cfg
 			orgsLoaded[cfg.Org] = true
