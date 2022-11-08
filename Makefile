@@ -14,3 +14,7 @@ build: ## Build binaries with version set
 
 docker: ## Build docker image
 	@docker build -t loki-label-proxy .
+
+push: ## Push docker image
+	docker tag loki-label-proxy sepa/loki-label-proxy
+	docker push sepa/loki-label-proxy

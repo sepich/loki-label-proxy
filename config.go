@@ -50,7 +50,7 @@ func (c *Config) watch() {
 				level.Info(c.logger).Log("msg", "Received SIGINT or SIGTERM. Shutting down")
 				os.Exit(0)
 			case <-changed:
-				level.Info(c.logger).Log("msg", "Got a config change event, waiting for 5s before reloading")
+				level.Debug(c.logger).Log("msg", "Got a config change event, waiting for 5s before reloading")
 				delayTimer.Reset(5 * time.Second)
 
 			case <-delayTimer.C:
@@ -84,10 +84,10 @@ func (c *Config) reload() {
 		for _, file := range files {
 			cfg, err := loadFile(file)
 			if err != nil {
-				level.Error(c.logger).Log("msg", "Error reading config", "file", path, "err", err)
+				level.Error(c.logger).Log("msg", "Error reading config", "file", file, "err", err)
 				os.Exit(1)
 			}
-			level.Info(c.logger).Log("msg", "Loaded config", "file", path)
+			level.Info(c.logger).Log("msg", "Loaded config", "file", file)
 			// TODO: RWMutex?
 			c.orgs[cfg.Org] = cfg
 			orgsLoaded[cfg.Org] = true
@@ -143,8 +143,8 @@ func pathNotifier(paths *[]string, logger log.Logger) chan bool {
 		for {
 			select {
 			case event := <-watcher.Events:
-				level.Debug(logger).Log("msg", "Watcher event", "name", event.Name, "op", event.Op)
-				if event.Op&fsnotify.Write == fsnotify.Write {
+				if event.Op&fsnotify.Write == fsnotify.Write ||
+					event.Op&fsnotify.Create == fsnotify.Create {
 					changed <- true
 				}
 			case err := <-watcher.Errors:

@@ -24,8 +24,8 @@ users:
     namespace: ingress-nginx # {...+, namespace="ingress-nginx"}
 
   user1@corp.domain:   # you can enforce multiple fields
-    cluster: cluster1  # {...+, cluster="cluster1", index="index1"}
-    index: app1
+    cluster: cluster1  # {...+, cluster="cluster1", index=~"app1|app2"}
+    index: app1|app2
 
   admin: {}            # empty = does not enforce any additional labels
 ```
