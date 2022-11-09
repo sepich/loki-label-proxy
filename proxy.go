@@ -51,7 +51,7 @@ func (e *Enforcer) NotFound(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotFound)
 }
 
-func (e *Enforcer) Health(w http.ResponseWriter, r *http.Request) {
+func (e *Enforcer) Health(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -83,18 +83,18 @@ func (rtf *roundTripperFilter) RoundTrip(r *http.Request) (*http.Response, error
 func (e *Enforcer) proxyFactory(enforce string) *httputil.ReverseProxy {
 	// based on httputil.NewSingleHostReverseProxy()
 	director := func(req *http.Request) {
-		level.Info(e.logger).Log("request", dumpReq(req, false))
 		req.URL.Scheme = e.target.Scheme
 		req.URL.Host = e.target.Host
 		req.Host = e.target.Host
 
 		assign, err := e.lookupUser(req)
 		if err != nil {
-			level.Info(e.logger).Log("msg", "Request denied", "error", err)
+			level.Info(e.logger).Log("msg", "Request denied", "request", dumpReq(req, false), "error", err)
 			req.Header.Set("X-Routing-Error", err.Error())
 			return
 		}
 		if err := rewriteReq(enforce, req, assign, e.logger); err != nil {
+			level.Info(e.logger).Log("msg", "Unable to rewrite request", "request", dumpReq(req, false), "error", err)
 			return
 		}
 
@@ -113,7 +113,7 @@ func (e *Enforcer) proxyFactory(enforce string) *httputil.ReverseProxy {
 		ErrorHandler: func(w http.ResponseWriter, req *http.Request, err error) {
 			if s, ok := req.Header["X-Routing-Error"]; ok {
 				w.WriteHeader(http.StatusBadRequest)
-				w.Write([]byte(strings.Join(s, ",") + "\n"))
+				_, _ = w.Write([]byte(strings.Join(s, ",") + "\n"))
 				return
 			}
 		},
@@ -198,7 +198,9 @@ func rewriteReq(enforce string, req *http.Request, assign labels.Labels, logger 
 			}
 			req.URL.RawQuery = qs.Encode()
 		} else if req.Method == "POST" {
-			req.ParseForm()
+			if err := req.ParseForm(); err != nil {
+				return err
+			}
 			if err := rewriteField(enforce, req, &req.Form, assign, logger); err != nil {
 				return err
 			}
