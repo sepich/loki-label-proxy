@@ -13,9 +13,11 @@ func main() {
 	app := kingpin.New("loki-label-proxy", "Proxy to enforce LogQL stream labels").Version(version.Print("loki-label-proxy"))
 	app.HelpFlag.Short('h')
 	addr := app.Flag("addr", "Server address. Can also be set using LOKI_ADDR env var.").Default("http://localhost:3100").Envar("LOKI_ADDR").String()
-	username := app.Flag("username", "Username for HTTP basic auth. Can also be set using LOKI_USERNAME env var.").Default("").Envar("LOKI_USERNAME").String()
-	password := app.Flag("password", "Password for HTTP basic auth. Can also be set using LOKI_PASSWORD env var.").Default("").Envar("LOKI_PASSWORD").String()
-	config := app.Flag("config", "Path to config files/dirs (repeated).").Default("/configs").ExistingFilesOrDirs()
+	lokiUser := app.Flag("loki-user", "Username for connection to Loki. Can also be set using LOKI_USERNAME env var.").Default("").Envar("LOKI_USERNAME").String()
+	lokiPass := app.Flag("loki-pass", "Password for connection to Loki. Can also be set using LOKI_PASSWORD env var.").Default("").Envar("LOKI_PASSWORD").String()
+	authUser := app.Flag("auth-user", "Username for HTTP basic auth. (Enables auth to proxy itself)").Default("").String()
+	authPassSha := app.Flag("auth-pass-sha256", "sha256 of password for HTTP basic auth.").Default("").String()
+	config := app.Flag("config", "Path to config files/dirs (repeated).").Default("/configs").Strings()
 	logLevel := app.Flag("log", "Log filtering level (info, debug)").Default("info").Enum("error", "warn", "info", "debug")
 	kingpin.MustParse(app.Parse(os.Args[1:]))
 
@@ -23,7 +25,7 @@ func main() {
 	logger = level.NewFilter(logger, level.Allow(level.ParseDefault(*logLevel, level.InfoValue())))
 
 	cfg := newConfig(config, logger)
-	enforcer := newEnforcer(addr, username, password, cfg, logger)
+	enforcer := newEnforcer(addr, lokiUser, lokiPass, authUser, authPassSha, cfg, logger)
 
 	http.HandleFunc("/", enforcer.NotFound)
 	http.HandleFunc("/healthz", enforcer.Health)

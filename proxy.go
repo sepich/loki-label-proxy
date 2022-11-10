@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
@@ -12,12 +13,15 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 type Enforcer struct {
 	logger      log.Logger
-	username    *string
-	password    *string
+	lokiUser    *string
+	lokiPass    *string
+	authUser    *string
+	authPassSha *string
 	target      *url.URL
 	config      *Config
 	proxyPass   *httputil.ReverseProxy
@@ -25,7 +29,7 @@ type Enforcer struct {
 	proxySeries *httputil.ReverseProxy
 }
 
-func newEnforcer(addr *string, username *string, password *string, cfg *Config, logger log.Logger) *Enforcer {
+func newEnforcer(addr *string, lokiUser *string, lokiPass *string, authUser *string, authPassSha *string, cfg *Config, logger log.Logger) *Enforcer {
 	target, err := url.Parse(*addr)
 	if err != nil {
 		logger.Log("msg", "Unable to parse addr as url", "error", err)
@@ -34,11 +38,13 @@ func newEnforcer(addr *string, username *string, password *string, cfg *Config, 
 	level.Info(logger).Log("msg", fmt.Sprintf("Listening on :8080, forwarding to Loki upstream: %s://%s", target.Scheme, target.Host))
 
 	e := &Enforcer{
-		target:   target,
-		username: username,
-		password: password,
-		logger:   logger,
-		config:   cfg,
+		target:      target,
+		lokiUser:    lokiUser,
+		lokiPass:    lokiPass,
+		authUser:    authUser,
+		authPassSha: authPassSha,
+		logger:      logger,
+		config:      cfg,
 	}
 	e.proxyPass = e.proxyFactory("")
 	e.proxyQuery = e.proxyFactory("query")
@@ -48,7 +54,9 @@ func newEnforcer(addr *string, username *string, password *string, cfg *Config, 
 
 func (e *Enforcer) NotFound(w http.ResponseWriter, r *http.Request) {
 	level.Debug(e.logger).Log("msg", "NotFound", "request", dumpReq(r, false))
-	w.WriteHeader(http.StatusNotFound)
+	if e.basicAuth(w, r) {
+		w.WriteHeader(http.StatusNotFound)
+	}
 }
 
 func (e *Enforcer) Health(w http.ResponseWriter, _ *http.Request) {
@@ -56,15 +64,39 @@ func (e *Enforcer) Health(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (e *Enforcer) Pass(w http.ResponseWriter, r *http.Request) {
-	e.proxyPass.ServeHTTP(w, r)
+	if e.basicAuth(w, r) {
+		e.proxyPass.ServeHTTP(w, r)
+	}
 }
 
 func (e *Enforcer) Query(w http.ResponseWriter, r *http.Request) {
-	e.proxyQuery.ServeHTTP(w, r)
+	if e.basicAuth(w, r) {
+		e.proxyQuery.ServeHTTP(w, r)
+	}
 }
 
 func (e *Enforcer) Series(w http.ResponseWriter, r *http.Request) {
-	e.proxySeries.ServeHTTP(w, r)
+	if e.basicAuth(w, r) {
+		e.proxySeries.ServeHTTP(w, r)
+	}
+}
+
+func (e *Enforcer) basicAuth(w http.ResponseWriter, r *http.Request) bool {
+	if *e.authUser == "" {
+		return true
+	}
+
+	username, password, ok := r.BasicAuth()
+	if ok {
+		if username == *e.authUser && *e.authPassSha == fmt.Sprintf("%x", sha256.Sum256([]byte(password))) {
+			return true
+		}
+		level.Info(e.logger).Log("msg", "Auth failed", "request", dumpReq(r, false), "user", username, "ip", r.RemoteAddr, "forwarded-for", r.Header.Get("X-Forwarded-For"))
+		time.Sleep(3 * time.Second)
+	}
+	w.Header().Set("WWW-Authenticate", `Invalid token!`)
+	http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	return false
 }
 
 // https://github.com/golang/go/issues/34733
@@ -89,12 +121,12 @@ func (e *Enforcer) proxyFactory(enforce string) *httputil.ReverseProxy {
 
 		assign, err := e.lookupUser(req)
 		if err != nil {
-			level.Info(e.logger).Log("msg", "Request denied", "request", dumpReq(req, false), "error", err)
+			level.Info(e.logger).Log("msg", "Request denied", "request", dumpReq(req, false), "error", err, "ip", req.RemoteAddr, "forwarded-for", req.Header.Get("X-Forwarded-For"))
 			req.Header.Set("X-Routing-Error", err.Error())
 			return
 		}
 		if err := rewriteReq(enforce, req, assign, e.logger); err != nil {
-			level.Info(e.logger).Log("msg", "Unable to rewrite request", "request", dumpReq(req, false), "error", err)
+			level.Info(e.logger).Log("msg", "Unable to rewrite request", "request", dumpReq(req, false), "error", err, "ip", req.RemoteAddr, "forwarded-for", req.Header.Get("X-Forwarded-For"))
 			return
 		}
 
@@ -103,8 +135,8 @@ func (e *Enforcer) proxyFactory(enforce string) *httputil.ReverseProxy {
 			req.Header.Set("User-Agent", "")
 		}
 		level.Debug(e.logger).Log("enforce", enforce, "request", dumpReq(req, true))
-		if e.username != nil && e.password != nil {
-			req.SetBasicAuth(*e.username, *e.password)
+		if e.lokiUser != nil && e.lokiPass != nil {
+			req.SetBasicAuth(*e.lokiUser, *e.lokiPass)
 		}
 	}
 	return &httputil.ReverseProxy{

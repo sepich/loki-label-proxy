@@ -40,16 +40,14 @@ usage: loki-label-proxy [<flags>]
 Proxy to enforce LogQL stream labels
 
 Flags:
-  -h, --help                 Show context-sensitive help (also try --help-long
-                             and --help-man).
+  -h, --help                 Show context-sensitive help (also try --help-long and --help-man).
       --version              Show application version.
       --addr="http://localhost:3100"
-                             Server address. Can also be set using LOKI_ADDR env
-                             var.
-      --username=""          Username for HTTP basic auth. Can also be set using
-                             LOKI_USERNAME env var.
-      --password=""          Password for HTTP basic auth. Can also be set using
-                             LOKI_PASSWORD env var.
+                             Server address. Can also be set using LOKI_ADDR env var.
+      --loki-user=""         Username for connection to Loki. Can also be set using LOKI_USERNAME env var.
+      --loki-pass=""         Password for connection to Loki. Can also be set using LOKI_PASSWORD env var.
+      --auth-user=""         Username for HTTP basic auth. (Enables auth to proxy itself)
+      --auth-pass-sha256=""  sha256 of password for HTTP basic auth.
       --config=/configs ...  Path to config files/dirs (repeated).
       --log=info             Log filtering level (info, debug)
 ```
