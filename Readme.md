@@ -6,7 +6,7 @@ loki-label-proxy
 ### How it works:
 ```mermaid
 flowchart LR
-Grafana -->|Basic auth| Ingress -->|X-Scope-OrgID:1| loki-label-proxy -->|"{..., namespace=a}"| loki-query-frontend
+Grafana -->|Basic auth-user:1\nX-Grafana-User:a| Ingress -->|X-Scope-OrgID:1\nX-Grafana-User:a| loki-label-proxy -->|"{..., namespace=a}"| loki-query-frontend
 loki-label-proxy -->|org:1, user:a| C(Configs)
 C -->|namespace:a| loki-label-proxy
 ```
