@@ -32,7 +32,7 @@ type Enforcer struct {
 func newEnforcer(addr *string, lokiUser *string, lokiPass *string, authUser *string, authPassSha *string, cfg *Config, logger log.Logger) *Enforcer {
 	target, err := url.Parse(*addr)
 	if err != nil {
-		logger.Log("msg", "Unable to parse addr as url", "error", err)
+		level.Error(logger).Log("msg", "Unable to parse addr as url", "error", err)
 		os.Exit(1)
 	}
 	level.Info(logger).Log("msg", fmt.Sprintf("Listening on :8080, forwarding to Loki upstream: %s://%s", target.Scheme, target.Host))

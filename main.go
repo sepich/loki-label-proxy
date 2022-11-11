@@ -37,5 +37,5 @@ func main() {
 	http.HandleFunc("/loki/api/v1/series", enforcer.Series)
 	http.HandleFunc("/loki/api/v1/tail", enforcer.Query)
 	http.HandleFunc("/loki/api/v1/index/stats", enforcer.Query)
-	logger.Log(http.ListenAndServe(":8080", nil))
+	level.Info(logger).Log(http.ListenAndServe(":8080", nil))
 }

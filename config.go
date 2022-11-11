@@ -26,7 +26,6 @@ type Config struct {
 }
 
 func newConfig(paths *[]string, logger log.Logger) *Config {
-	fmt.Println(paths)
 	config := &Config{
 		logger: logger,
 		paths:  paths,
