@@ -31,6 +31,8 @@ users:
 ```
 You can specify folder to read configuration files from. Each file should have users for single Org. Org id is unique and not merged, so last file read wins. Specified config path is monitored for changes and configs are reloaded automatically.
 
+If user is not found in config, `default` section is used. If `default` section is not set, request is denied (400).
+
 ### Installation:
 arm64/amd64 compiled images are available on docker hub: 
 ```sh

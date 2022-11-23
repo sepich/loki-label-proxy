@@ -168,6 +168,9 @@ func (e *Enforcer) lookupUser(req *http.Request) (labels.Labels, error) {
 	if u, ok := e.config.orgs[org].Users[user]; ok {
 		m = u
 	}
+	if len(m) == 0 {
+		return nil, fmt.Errorf("no user %s found in config, and no `default` defined", user)
+	}
 	assign := make(labels.Labels, 0, len(m))
 	for k, v := range m {
 		assign = append(assign, labels.Label{Name: k, Value: v})
