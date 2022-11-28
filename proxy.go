@@ -164,11 +164,13 @@ func (e *Enforcer) lookupUser(req *http.Request) (labels.Labels, error) {
 	if _, ok := e.config.orgs[org]; !ok {
 		return nil, fmt.Errorf("X-Scope-OrgID %s not found in configs", org)
 	}
-	m := e.config.orgs[org].Users["default"]
+	var m map[string]string
 	if u, ok := e.config.orgs[org].Users[user]; ok {
 		m = u
+	} else if d, ok := e.config.orgs[org].Users["default"]; ok {
+		m = d
 	}
-	if len(m) == 0 {
+	if m == nil {
 		return nil, fmt.Errorf("no user %s found in config, and no `default` defined", user)
 	}
 	assign := make(labels.Labels, 0, len(m))
