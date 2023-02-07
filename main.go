@@ -30,7 +30,8 @@ func main() {
 	http.HandleFunc("/", enforcer.NotFound)
 	http.HandleFunc("/healthz", enforcer.Health)
 	// https://grafana.com/docs/loki/latest/api/
-	http.HandleFunc("/loki/api/v1/label", enforcer.Pass)
+	http.HandleFunc("/loki/api/v1/label", enforcer.Pass)  // grafana v8.5
+	http.HandleFunc("/loki/api/v1/labels", enforcer.Pass) // grafana v9
 	http.HandleFunc("/loki/api/v1/label/", enforcer.Pass)
 	http.HandleFunc("/loki/api/v1/query", enforcer.Query)
 	http.HandleFunc("/loki/api/v1/query_range", enforcer.Query)
