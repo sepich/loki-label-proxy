@@ -30,6 +30,8 @@ func main() {
 	http.HandleFunc("/", enforcer.NotFound)
 	http.HandleFunc("/healthz", enforcer.Health)
 	// https://grafana.com/docs/loki/latest/api/
+	http.HandleFunc("/loki/api/v1/status/buildinfo", enforcer.Pass)
+	http.HandleFunc("/loki/api/v1/format_query", enforcer.Pass)
 	http.HandleFunc("/loki/api/v1/label", enforcer.Pass)  // grafana v8.5
 	http.HandleFunc("/loki/api/v1/labels", enforcer.Pass) // grafana v9
 	http.HandleFunc("/loki/api/v1/label/", enforcer.Pass)
@@ -38,5 +40,7 @@ func main() {
 	http.HandleFunc("/loki/api/v1/series", enforcer.Series)
 	http.HandleFunc("/loki/api/v1/tail", enforcer.Query)
 	http.HandleFunc("/loki/api/v1/index/stats", enforcer.Query)
+	http.HandleFunc("/loki/api/v1/index/volume", enforcer.Query)
+	http.HandleFunc("/loki/api/v1/index/volume_range", enforcer.Query)
 	level.Info(logger).Log(http.ListenAndServe(":8080", nil))
 }
