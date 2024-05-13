@@ -157,7 +157,7 @@ func (e *Enforcer) lookupUser(req *http.Request) (labels.Labels, error) {
 	if org == "" {
 		return nil, fmt.Errorf("X-Scope-OrgID header not found in request")
 	}
-	user := req.Header.Get("X-Grafana-User")
+	user := strings.ToLower(req.Header.Get("X-Grafana-User"))
 	if user == "" {
 		return nil, fmt.Errorf("X-Grafana-User header not found in request")
 	}
